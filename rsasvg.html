@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SVG generator</title>
+    
+    <!-- https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js -->
+    <script src="jquery.min.js"></script>
+
+    <!-- http://keith-wood.name/svg.html -->
+    <script src="jquery.svg.min.js"></script>
+    <script src="jquery.svganim.min.js"></script>
+</head>
+
+<body>
+
+<div id="svgexample" style="width: 100%; height: 700px"></div>
+
+<script>
+    // data points - [128,255] - Microsoft Crypto API example. X-axis coordinate
+    points = [179, 180, 187, 228, 177, 181, 186, 174, 202, 182, 153, 175, 192, 196, 173, 213, 178, 143, 245, 188,
+        149, 193, 158, 241, 240, 162, 156, 168, 158, 161, 165, 201, 205, 202, 190, 162, 137, 196, 170, 219, 155,
+        232, 138, 180, 137, 211, 209, 154, 154];
+
+    // Chart specific:
+    // left & right offset of the scale to match the image overlay (beginning & end of the histogram)
+    leftOffset = 133;
+    rightOffset = 878;
+
+    // y-levels for data point & text for image overlay
+    ylevelPoint = 430;
+    ylevelText = 450;
+
+    // Animation timeouts in milliseconds
+    animTimeout = 100;
+
+    // transforms point from 128-255 to the x coord - based on the graph bounds
+    function point2cords(point, lo, ro){
+        lo = lo || leftOffset;
+        ro = ro || rightOffset;
+        return Math.round(lo + (point-128) * (ro-lo)/128.0);
+    }
+
+    // draw single point to the svg - in the group.
+    function drawPoint(svg, idx){
+        var point = points[idx];
+        var xcoord = point2cords(point);
+        var ylabel = ylevelText + (Math.random() * 5.0) * 35;
+
+        var pg = svg.group();
+        var myrect = svg.circle(pg, xcoord, ylevelPoint, 10,
+                {fill: 'magenta', stroke: 'black', strokeWidth: 2, opacity: 0.3});
+        var mytext = svg.text(pg, xcoord, ylabel, point.toString(),
+                {transform: 'rotate(90, '+xcoord+', '+(ylabel-5)+')', style:'font-size:10pt'}); // style:'text-anchor:end'
+
+        return pg;
+    }
+
+    // draws the point, animates the next one.
+    function animatePoints(svg, idx){
+        idx = idx || 0;
+
+        if (idx >= points.length){
+            console.log('finished');
+            return;
+        }
+
+        var pg = drawPoint(svg, idx);
+
+        // animation hack, no "from" in the library.
+        $(pg).animate({svgOpacity: 1}, {duration:animTimeout, complete:(function(idx){
+            animatePoints(svg, idx+1);
+        }).bind(this, idx)});
+    }
+
+    function process(svg){
+        // Initialize SVG & add image overlay
+        var g = svg.group();
+        svg.image(g, 0, 0, 1000, 500, 'https://s30.postimg.org/5wy4xlfzl/MSVault.png');
+
+        // Kick off the animation
+        window.setTimeout(animatePoints.bind(this, svg), 1500);
+    }
+
+    // document is ready -> kick off the show
+    $(document).ready(function () {
+        var svgexample = $('#svgexample');
+        svgexample.svg({onLoad: process});
+    });
+
+</script>
+
+</body>
+</html>
